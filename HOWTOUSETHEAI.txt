@@ -1,0 +1,24 @@
+Hello! This is an AI that slowly adjusts to the risks taken in blackjack over time. Here's what you need to know:
+
+##################################################### THE NODES #####################################################
+The AI uses the cards in play as inputs to the neural network. The hidden nodes are based on how safe it is to take
+another card and the probability of the dealer having a higher card sum than the bot. The output is, of course,
+the bot's choice to hit or stand. As a forewarning, the weights of the hidden nodes are set to [0.70, 0.70] by
+default (in the weights variable), which means the bot will have a very low chance of hitting. Increase the values
+of both and/or increase the value of trainingWeight to speed up the process. Change the value of timesTrained to
+change how many games the bot plays.
+
+###################################################### CONTROLS #####################################################
+The game will automatically play itself, so the only actual input is your decision to hit or stand. The program will
+print a list of each player's visible cards, but at the very start of the round it will print your, aka the Dealer's,
+hidden card. You have to do your own math during the round, and the round doesn't automatically stop if you break,
+so technically you could play until the program crashed by popping cards off of the deck that don't exist. If you
+want to exit the program during the program, just type quit into the y/n prompt and it will SystemExit.
+
+################################################### FUTURE UPDATES ###################################################
+If you pay close attention to the code, you'll notice a comment at the bottom that says "#PREDICTIVE FUNCTIONS".
+Although the AI technically does adjust for the risk factor of each player over time, the predictive functions will
+allow the bot to save profiles on players and predict their decisions to play against.
+
+Have fun!
+-mydog4444
