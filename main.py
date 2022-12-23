@@ -1,13 +1,20 @@
 import random
+import csv
 
+f = open('test1.csv','w', newline='')
+writer = csv.writer(f)
+
+row1 = ["Trial", "Weight 1", "Weight 2", "Success", "Wins","Win Rate"]
+
+writer.writerow(row1)
 
 
 AICards = []
 AllCards = {'A':4, '2':4, '3':4, '4':4, '5':4, '6':4, '7':4, '8':4, '9':4, '10':4, 'J':4, 'Q':4, 'K':4}
 DealerCards = []
-weights = [0.70,0.70]
-trainingWeight = 0.02
-timesTrained = 5
+weights = [0.92,1.8]
+trainingWeight = 0.001
+timesTrained = 10000
 
 #GAMEPLAY
 deck = ['A', 'A', 'A', 'A', '2', '2', '2', '2', '3', '3', '3', '3', '4', '4', '4', '4', '5', '5', '5', '5', '6', '6', '6', '6', '7', '7', '7', '7', '8', '8', '8', '8', '9', '9', '9', '9', '10', '10', '10', '10', 'J', 'J', 'J', 'J', 'Q', 'Q', 'Q', 'Q', 'K', 'K', 'K', 'K']
@@ -43,16 +50,16 @@ def setup(numberused):
         DealerHidden = getCard()
 
         AICards.append(AICard1)
-        print("AI's First Card: ", AICard1)
+        #print("AI's First Card: ", AICard1)
         AICards.append(AICard2)
-        print("AI's Second Card:", AICard2)
+        #print("AI's Second Card:", AICard2)
         DealerCards.append(DealerCard)
-        print("Dealer's First Card: ", DealerCard)
-        print("Dealer's Hidden Card: ", DealerHidden)
+        #print("Dealer's First Card: ", DealerCard)
+        #print("Dealer's Hidden Card: ", DealerHidden)
         removeCards(AICards)
         removeCards(DealerCards)
-        print("AI has: ", AICards)
-        print("Dealer has: ", DealerCards)
+        #print("AI has: ", AICards)
+        #print("Dealer has: ", DealerCards)
         #print("(DEBUG): ", AllCards)
     if(numberused==2):
         return DealerHidden
@@ -72,6 +79,29 @@ def sumList(Cards):
     for i in range(len(Cards)):
         sum += charToNum(Cards[i])
     return sum
+
+def sumListAI(Cards):
+    sum = sumList(Cards)
+    for i in range(numAce(Cards)):
+        if(sum>21):
+            sum -= 10
+    return sum
+
+
+def sumListDealer(Cards, hidden):
+    CardSum = sumList(Cards)
+    sum = 0
+    sum += charToNum(hidden)
+    if(CardSum+sum>21 and sum == 11):
+        sum = 1
+    
+    for i in range(numAce(Cards)):
+        if(CardSum+sum>21):
+            CardSum -= 10
+    
+    return  CardSum + sum
+
+
 def higherCards(inputnum):
     greaterCards = 0
     lowerCards = 0
@@ -137,7 +167,7 @@ def numToChar(inputnum):
 def removeCards(Cards):
     if(isinstance(Cards, list)):
         for i in range(len(Cards)):
-            print(i)
+            #print(i)
             AllCards[Cards[i]] = AllCards[Cards[i]] - 1
     if(isinstance(Cards, str)):
         AllCards[Cards] = AllCards[Cards] - 1
@@ -150,13 +180,6 @@ def numAce(Cards):
     #print("Number of Aces: ", aceCount)
     return aceCount
 
-def aceConvertRestrained(sum, iteration, numAce):
-    if(numAce>=iteration and sum>21):
-        sum -= 10
-        return aceConvertRestrained(sum, iteration+1, numAce)
-    else:
-        return sum
-
 def numCards():
     totalCards = 0
     for key,val in AllCards.items():
@@ -166,15 +189,13 @@ def numCards():
 #HIDDEN NEURON #1
 def breaking_probability(Cards):
     sum = 0
-    sum2 = 0
     distance = 21
     breakingCards = 0
     safeCards = 0
     probabilitySafe = 0
 
-    sum = sumList(Cards)
-    sum2 = sum - numAce(Cards)*10
-    distance = distance - sum2
+    sum = sumListAI(Cards)
+    distance = distance - sum
 
     #print(distance)
 
@@ -210,9 +231,7 @@ def breaking_probability(Cards):
 #HIDDEN NEURON #2
 def betterCard_probability(PlayerCards, DealCards):
     sum = 0
-    sum2 = 0
     dealerSum = 0
-    dealerSum2 = 0
     distanceFromDealer = 0
     dealerDistance = 0
     betterCards = 0
@@ -221,17 +240,15 @@ def betterCard_probability(PlayerCards, DealCards):
     under21 = 0
     probabilityGreater = 0
 
-    sum = sumList(PlayerCards)
+    sum = sumListAI(PlayerCards)
     #print("(DEBUG) SUM BEFORE ACECONVERT: ", sum)
-    sum2 = aceConvertRestrained(sum, 1, numAce(PlayerCards))
     #print("(DEBUG) SUM AFTER ACECONVERT: ", sum2)
-    dealerSum = sumList(DealCards)
+    dealerSum = sumListAI(DealCards)
     #print("(DEBUG) DEALERSUM BEFORE ACECONVERT: ", dealerSum)
-    dealerSum2 = aceConvertRestrained(dealerSum, 1, numAce(DealCards))
     #print("(DEBUG) DEALERSUM AFTER ACECONVERT: ", dealerSum2)
 
-    distanceFromDealer = sum2-dealerSum2
-    dealerDistance = 21-dealerSum2
+    distanceFromDealer = sum-dealerSum
+    dealerDistance = 21-dealerSum
     #print("(DEBUG) DISTANCE: ", distanceFromDealer)
     betterCards, worseCards = higherCards(distanceFromDealer)
     over21, under21 = higherCards(dealerDistance)
@@ -259,96 +276,85 @@ def chooseHit(PlayerCards, DealCards, weightList):
     else:
         return False
 
+
+
 #TRAINING PART
 def trainFunc(PlayerCards, DealCards, weight, trainWeight):
     global DealerHidden
     newSum = 0
-    dealerHit = 'n'
+    dealerHit = 'y'
     dealerNewCard = '2'
     dealerNewSum = 0
     newCard = '2'
     doesHit = False
     doesHit = chooseHit(PlayerCards, DealCards, weight)
-    
-    if(doesHit):
+
+    while(doesHit and newSum <= 21):
         newAICard = getCard()
-        print("HIT! New card is: ", newAICard)
+        #print("HIT! New card is: ", newAICard)
         addToAICards(newAICard)
-        newSum = sumList(AICards)
-        if(newSum>21 and newCard is 'A'):
+        newSum = sumListAI(AICards)
+        if(newSum>21 and newCard=='A'):
             newSum -= 10
-    else:
-        print("STAND!")
-        newSum = sumList(AICards)
+        doesHit = chooseHit(PlayerCards, DealCards, weight)
     
-    dealerHit = input("Did the dealer hit? (y/n): ")
-    if(dealerHit is 'y'):
+    #print("STAND!")
+    newSum = sumListAI(AICards)
+
+    
+    #dealerHit = input("Did the dealer hit? (y/n): ")
+
+    dealerNewSum = sumListDealer(DealerCards, setup(2))
+    #print("I think the dealer has ", dealerNewSum)
+    while(dealerHit=='y' and dealerNewSum<17):
         dealerNewCard = getCard()
-        print("Dealer's new card: ", dealerNewCard)
+        #print("HIT! Dealer's new card: ", dealerNewCard)
         addToDealerCards(dealerNewCard)
-    elif(dealerHit=='quit'):
+        dealerNewSum = sumListDealer(DealerCards, setup(2))
+        #print("I think the dealer has ", dealerNewSum)
+        #dealerHit = input("Did the dealer hit? (y/n): ")
+    
+    if(dealerHit=='quit'):
         print("SYSTEM EXITED")
         raise SystemExit
 
-    dealerNewSum = sumList(DealerCards)
+    dealerNewSum = sumListDealer(DealerCards, setup(2))
+    #print("Dealer cards with hidden added: ", DealerCards)
+    #print("Sum adjusted for dealer's new card: ", dealerNewSum)
+    if(newSum>21):
+        weights[0] -= trainWeight
+        #print("AI loses! Dealer Sum: ", dealerNewSum, ", AI Sum: ", newSum)
+        return False
+    if(dealerNewSum>21):
+        weights[0] += trainWeight
+        #print("AI wins! Dealer Sum: ", dealerNewSum, ", AI Sum: ", newSum)
+        return True
+    if(dealerNewSum>newSum):
+        #print("AI loses! Dealer Sum: ", dealerNewSum, ", AI Sum: ", newSum)
+        weights[1] += trainWeight
+        return False
+    elif(newSum>dealerNewSum):
+        #print("AI wins! Dealer Sum: ", dealerNewSum, ", AI Sum: ", newSum)
+        weights[1] -= trainWeight
+        return True
+    elif(newSum==dealerNewSum):
+        #print("Push! Dealer Sum: ", dealerNewSum, ", AI Sum: ", newSum)
+        return True
 
-    if(dealerNewSum>21 and dealerNewCard is 'A'):
-        newSum -= 10
+    return
 
-    #print("Updated sum: ", newSum)
-    #print("Updated dealer sum: ", dealerNewSum)
-    #print(AICards)
-    #print(DealerCards)
-    
-
-    
-
-    if(not doesHit and dealerHit is not 'y'):
-        addToDealerCards(setup(2))
-        dealerNewSum = sumList(DealerCards)
-        #print("Dealer cards with hidden added: ", DealerCards)
-        #print("Sum adjusted for dealer's new card: ", dealerNewSum)
-        if(newSum>21):
-            weights[0] -= trainWeight
-            print("AI loses! Dealer Sum: ", dealerNewSum, ", AI Sum: ", newSum)
-            return
-        if(dealerNewSum>21):
-            weights[0] += trainWeight
-            print("AI wins! Dealer Sum: ", dealerNewSum, ", AI Sum: ", newSum)
-            return
-        if(dealerNewSum>newSum):
-            print("AI loses! Dealer Sum: ", dealerNewSum, ", AI Sum: ", newSum)
-            weights[1] += trainWeight
-            return
-        elif(newSum>dealerNewSum):
-            print("AI wins! Dealer Sum: ", dealerNewSum, ", AI Sum: ", newSum)
-            weights[1] -= trainWeight
-            return
-        elif(newSum==dealerNewSum):
-            print("Push! Dealer Sum: ", dealerNewSum, ", AI Sum: ", newSum)
-            return
-    else:
-        #print(AICards, DealerCards, weight, trainWeight)
-        trainFunc(AICards, DealerCards, weight, trainWeight)
-        return
-
-#print("Cards in deck:")
-#for key,val in AllCards.items():
-#        print(key, "--", val)
-
-#PREDICTIVE FUNCTIONS
-
-
-
-
-
-
-
+result = False
+row = ""
+wins = 0
 for i in range(timesTrained):
-    print("\n\n")
-    print("Training loop: ",i+1)
+    #print("\n\n")
+    #print("Training loop: ",i+1)
     reset()
-    trainFunc(AICards, DealerCards, weights, trainingWeight)
-    print(weights)
+    result = trainFunc(AICards, DealerCards, weights, trainingWeight)
+    if(result):
+        wins += 1
+    row = [i, weights[0], weights[1], result, wins, wins/(i+1)]
+    writer.writerow(row)
+    #print(weights)
 
 print(weights)
